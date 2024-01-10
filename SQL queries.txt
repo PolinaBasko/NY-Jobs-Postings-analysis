@@ -1,0 +1,294 @@
+--добавляем колонки с годом, мес и днём
+SELECT 
+	*,
+	SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+	SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+	SUBSTR(Posting_Date, 4, 2) AS post_date_day
+FROM Jobs_NYC_Postings_Final jnpf ;
+
+--группируем по кол-ву вакансий в год и месяц 
+SELECT 
+	SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+	SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+	SUM(Num_Of_Positions) AS positions_total
+FROM Jobs_NYC_Postings_Final jnpf 
+GROUP BY 1,2;
+
+--посмотрим кол-во публикаций и сравним с кол-вом позиций в той же структуре 
+SELECT 
+	SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+	SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+	SUM(Num_Of_Positions) AS positions_total,
+	COUNT(Num_Of_Positions) AS num_of_publications
+FROM Jobs_NYC_Postings_Final jnpf 
+GROUP BY 1,2;
+
+--среднее кол-во позиций в публикации 
+SELECT
+	*,
+	positions_total/num_of_publications AS avg_positions_per_publ
+FROM
+(SELECT 
+		SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+		SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+		SUM(Num_Of_Positions) AS positions_total,
+		COUNT(Num_Of_Positions) AS num_of_publications
+	FROM Jobs_NYC_Postings_Final jnpf 
+	GROUP BY 1,2);
+
+SELECT 
+	*,
+	MAX(Num_Of_Positions) AS max_num_of_positions_publ
+FROM Jobs_NYC_Postings_Final jnpf;
+
+-- разброс зп по уровню навыков
+SELECT 
+	*,
+	salary_to - salary_from AS difference,
+	(salary_to - salary_from)*100/salary_to AS perc_difference
+FROM
+	(SELECT 
+		Career_Level,
+		AVG(Salary_Range_From) AS salary_from,
+		AVG(Salary_Range_To) AS salary_to
+	FROM Jobs_NYC_Postings_Final jnpf 
+	GROUP BY 1);
+	
+-- разброс зп по области занятости
+SELECT 
+	*,
+	salary_to - salary_from AS difference,
+	(salary_to - salary_from)*100/salary_to AS perc_difference
+FROM
+	(SELECT 
+		Business_Title,
+		Job_Category,
+		AVG(Salary_Range_From) AS salary_from,
+		AVG(Salary_Range_To) AS salary_to
+	FROM Jobs_NYC_Postings_Final jnpf 
+	WHERE Salary_Frequency ='Annual' 
+	GROUP BY 2,1)
+ORDER BY perc_difference;
+
+-- вакансии в области Engineering, Architecture, & Planning Health Technology, Data & Innovation
+SELECT 
+	*
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Job_Category ="Engineering, Architecture, & Planning Health Technology, Data & Innovation";
+
+-- зп по областям занятости с почасовой оплатой 
+SELECT 
+	Job_Category,
+	Career_Level,
+	AVG(Salary_Range_From) AS salary_from,
+	AVG(Salary_Range_To) AS salary_to	
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Hourly' 
+GROUP BY 1,2
+ORDER BY salary_to;
+
+-- зп по областям занятости с почасовой оплатой в наиболее оплачиваемых областях
+SELECT 
+	*,
+	AVG(Salary_Range_From) AS salary_from,
+	AVG(Salary_Range_To) AS salary_to	
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Hourly' AND (Job_Category ="Health Social Services" OR Job_Category ="Health Public Safety, Inspections, & Enforcement")
+GROUP BY Job_Category 
+ORDER BY salary_to;
+
+-- зп по областям занятости с годовой оплатой 
+SELECT 
+	Job_Category,
+	Career_Level,
+	Business_Title,
+	AVG(Salary_Range_From) AS salary_from,
+	AVG(Salary_Range_To) AS salary_to	
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Annual' 
+GROUP BY 1,2,3
+ORDER BY salary_to;
+
+-- зп по областям занятости с дневной оплатой 
+SELECT 
+	Job_Category,
+	Career_Level,
+	Business_Title,
+	AVG(Salary_Range_From) AS salary_from,
+	AVG(Salary_Range_To) AS salary_to	
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Daily' 
+GROUP BY 1,2,3
+ORDER BY salary_to;
+
+
+-- зп по областям занятости с годовой оплатой в наиболее оплачиваемых областях
+SELECT 
+	*,
+	AVG(Salary_Range_From) AS salary_from,
+	AVG(Salary_Range_To) AS salary_to	
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Annual' AND Job_Category ="Legal Affairs" AND Career_Level ='Executive'
+ORDER BY salary_to;
+
+--кого ищут в inernal и external больше
+SELECT 
+	Posting_Type,
+	COUNT(Job_ID) AS num_of_postings
+FROM Jobs_NYC_Postings_Final jnpf 
+GROUP BY Posting_Type ;
+
+-- inernal и external по навыкам
+SELECT 
+	Posting_Type,
+	Career_Level,
+	COUNT(Job_ID) AS num_of_postings
+FROM Jobs_NYC_Postings_Final jnpf 
+GROUP BY 1,2;
+
+-- отличаются ли зарплаты ? (годовая оплата) 
+SELECT 
+	Posting_Type,
+	Career_Level,
+	COUNT(Job_ID) AS num_of_postings,
+	AVG(Salary_Range_To) AS salary_to
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Annual'
+GROUP BY 1,2;
+
+-- отличаются ли зарплаты ? (почасовая, дневная оплата) 
+SELECT 
+	Posting_Type,
+	Career_Level,
+	COUNT(Job_ID) AS num_of_postings,
+	AVG(Salary_Range_To) AS salary_to
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Salary_Frequency ='Hourly' OR Salary_Frequency ='Daily'
+GROUP BY 1,2;
+
+-- парт-тайм - почасовая, фулл - годовая? 
+SELECT 
+	Type_of_employment,
+	Salary_Frequency,
+	COUNT(Job_ID) AS num_of_postings	
+FROM Jobs_NYC_Postings_Final jnpf 
+GROUP BY 1,2;
+
+-- health
+SELECT *
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE Job_Category ='Health';
+
+-- health - расширили выборку
+SELECT *
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE INSTR(Job_Category, 'Health')<>0;
+
+-- см кол-во вакансий
+SELECT 
+	SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+	SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+	COUNT(Job_ID) AS num_of_postings
+FROM Jobs_NYC_Postings_Final jnpf 
+WHERE INSTR(Job_Category, 'Health')<>0
+GROUP BY 1,2;
+
+--скользящее среднее по зп 
+SELECT 
+	post_date_year,
+	post_date_month,
+	ROUND(AVG(avg_monthly) OVER (ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)) AS avg_salary_to
+FROM
+	(SELECT 
+		SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+		SUBSTR(Posting_Date, 1, 2) AS post_date_month,
+		ROUND(AVG(Salary_Range_To)) AS avg_monthly,
+		COUNT(Job_ID) AS num_of_postings
+	FROM Jobs_NYC_Postings_Final jnpf 
+	WHERE INSTR(Job_Category, 'Health')<>0 AND Salary_Frequency ='Annual'
+	GROUP BY post_date_year,post_date_month )
+GROUP BY 1,2;
+
+--выделим основные сферы работы отдельным столбцом, annual salary frq only
+SELECT 
+	*,
+	CASE 
+		WHEN INSTR(Job_Category, 'Health')<>0 THEN 'Health'
+		WHEN INSTR(Job_Category, 'Social Services')<>0 THEN 'Social Services'
+		WHEN INSTR(Job_Category, 'Legal Affairs')<>0 THEN 'Legal Affairs'
+		WHEN INSTR(Job_Category, 'Human Resources')<>0 THEN 'Human Resources'
+		WHEN INSTR(Job_Category, 'Engineering, Architecture, & Planning')<>0 THEN 'Engineering, Architecture, & Planning'
+		WHEN INSTR(Job_Category, 'Finance, Accounting, & Procurement')<>0 THEN 'Finance, Accounting, & Procurement'
+		WHEN INSTR(Job_Category, 'Technology, Data & Innovation')<>0 THEN 'Technology, Data & Innovation'
+		ELSE 'Others'
+	END AS working_area,
+	SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+	SUBSTR(Posting_Date, 1, 2) AS post_date_month
+FROM Jobs_NYC_Postings_Final jnpf
+WHERE Salary_Frequency ='Annual';
+
+--по сферам работы посчитаем кол-во позиций и ср зарплату по месяцам без others + raiting
+SELECT 
+	post_date_year,
+	post_date_month,
+	working_area,
+	SUM(Num_Of_Positions) AS positions_total,
+	ROUND(AVG(Salary_Range_To)) AS avg_salary_ceiling,
+	ROW_NUMBER() OVER (PARTITION BY post_date_year, post_date_month ORDER BY ROUND(AVG(Salary_Range_To)) DESC) AS raiting
+FROM
+	(SELECT 
+		*,
+		CASE 
+			WHEN INSTR(Job_Category, 'Health')<>0 THEN 'Health'
+			WHEN INSTR(Job_Category, 'Social Services')<>0 THEN 'Social Services'
+			WHEN INSTR(Job_Category, 'Legal Affairs')<>0 THEN 'Legal Affairs'
+			WHEN INSTR(Job_Category, 'Human Resources')<>0 THEN 'Human Resources'
+			WHEN INSTR(Job_Category, 'Engineering, Architecture, & Planning')<>0 THEN 'Engineering, Architecture, & Planning'
+			WHEN INSTR(Job_Category, 'Finance, Accounting, & Procurement')<>0 THEN 'Finance, Accounting, & Procurement'
+			WHEN INSTR(Job_Category, 'Technology, Data & Innovation')<>0 THEN 'Technology, Data & Innovation'
+			ELSE 'Others'
+		END AS working_area,
+		SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+		SUBSTR(Posting_Date, 1, 2) AS post_date_month
+	FROM Jobs_NYC_Postings_Final jnpf
+	WHERE Salary_Frequency ='Annual')
+WHERE working_area<>'Others'
+GROUP BY post_date_year, post_date_month, working_area;
+
+
+-- сгруппируем по годам 
+SELECT 
+	post_date_year,
+	working_area,
+	ROUND(AVG(avg_salary_ceiling)) AS salary_ceiling,
+	ROUND(AVG(raiting)) AS avg_raiting	
+FROM
+	(SELECT 
+		post_date_year,
+		post_date_month,
+		working_area,
+		SUM(Num_Of_Positions) AS positions_total,
+		ROUND(AVG(Salary_Range_To)) AS avg_salary_ceiling,
+		ROW_NUMBER() OVER (PARTITION BY post_date_year, post_date_month ORDER BY ROUND(AVG(Salary_Range_To)) DESC) AS raiting
+	FROM
+		(SELECT 
+			*,
+			CASE 
+				WHEN INSTR(Job_Category, 'Health')<>0 THEN 'Health'
+				WHEN INSTR(Job_Category, 'Social Services')<>0 THEN 'Social Services'
+				WHEN INSTR(Job_Category, 'Legal Affairs')<>0 THEN 'Legal Affairs'
+				WHEN INSTR(Job_Category, 'Human Resources')<>0 THEN 'Human Resources'
+				WHEN INSTR(Job_Category, 'Engineering, Architecture, & Planning')<>0 THEN 'Engineering, Architecture, & Planning'
+				WHEN INSTR(Job_Category, 'Finance, Accounting, & Procurement')<>0 THEN 'Finance, Accounting, & Procurement'
+				WHEN INSTR(Job_Category, 'Technology, Data & Innovation')<>0 THEN 'Technology, Data & Innovation'
+				ELSE 'Others'
+			END AS working_area,
+			SUBSTR(Posting_Date, 7, 4) AS post_date_year,
+			SUBSTR(Posting_Date, 1, 2) AS post_date_month
+		FROM Jobs_NYC_Postings_Final jnpf
+		WHERE Salary_Frequency ='Annual')
+	WHERE working_area<>'Others'
+	GROUP BY post_date_year, post_date_month, working_area)
+GROUP BY 1,2;
+
+
